@@ -1,0 +1,111 @@
+### Version A — Durable Functions test scenarios
+### Use the REST Client extension in VS Code, or import into Postman.
+### Run one request at a time. After submitting an expense >= $100, grab the
+### instance_id from the response statusQueryGetUri, then POST to manager-decision.
+
+@host = http://localhost:7071
+
+###############################################################################
+# Scenario 1: Valid expense under $100 → auto-approved
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "employee_email": "dharti@example.com",
+  "amount": 45.00,
+  "category": "meals",
+  "description": "Team lunch after sprint demo",
+  "manager_email": "manager@example.com"
+}
+
+###############################################################################
+# Scenario 2: Valid expense >= $100, manager approves
+# Step 1: submit, copy the instance_id from the response
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "employee_email": "dharti@example.com",
+  "amount": 450.00,
+  "category": "equipment",
+  "description": "External monitor for home office",
+  "manager_email": "manager@example.com"
+}
+
+### Step 2: replace {instance_id} with the value returned above
+POST {{host}}/api/manager-decision/{instance_id}
+Content-Type: application/json
+
+{
+  "decision": "approved"
+}
+
+###############################################################################
+# Scenario 3: Valid expense >= $100, manager rejects
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "employee_email": "dharti@example.com",
+  "amount": 1200.00,
+  "category": "travel",
+  "description": "Conference flight to Toronto",
+  "manager_email": "manager@example.com"
+}
+
+### Step 2: replace {instance_id}
+POST {{host}}/api/manager-decision/{instance_id}
+Content-Type: application/json
+
+{
+  "decision": "rejected"
+}
+
+###############################################################################
+# Scenario 4: Valid expense >= $100, no manager response → escalated
+# Just submit and wait for MANAGER_TIMEOUT_SECONDS. Don't POST a decision.
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "employee_email": "dharti@example.com",
+  "amount": 799.00,
+  "category": "software",
+  "description": "Annual JetBrains license",
+  "manager_email": "slow-manager@example.com"
+}
+
+###############################################################################
+# Scenario 5: Missing required fields → validation error
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "amount": 50.00,
+  "category": "meals"
+}
+
+###############################################################################
+# Scenario 6: Invalid category → validation error
+###############################################################################
+POST {{host}}/api/submit-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Dharti Patel",
+  "employee_email": "dharti@example.com",
+  "amount": 75.00,
+  "category": "entertainment",
+  "description": "Team movie night",
+  "manager_email": "manager@example.com"
+}
