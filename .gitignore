@@ -1,0 +1,33 @@
+# Local settings — NEVER commit these, they contain secrets
+local.settings.json
+*.settings.json
+!local.settings.example.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+.pytest_cache/
+
+# Azure Functions
+bin/
+obj/
+.python_packages/
+.funcignore
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
