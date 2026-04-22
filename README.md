@@ -1,7 +1,7 @@
 # CST8917 Final Project - Dual Implementation of an Expense Approval Workflow
 
 **Name:** Dharti Patel
-**Student Number:** [ADD YOUR STUDENT NUMBER]
+**Student Number:** 040775191
 **Course:** CST8917 - Serverless Applications
 **Term:** Winter 2026
 **Submission Date:** April 2026
