@@ -38,7 +38,7 @@
 | `s4-06-topic-send-success.png` | Scenario 4: direct topic publish worked |
 | `s5-01-email-missing-fields.png` | Scenario 5: validation rejection - missing fields |
 | `s6-01-email-invalid-category.png` | Scenario 6: validation rejection - invalid category |
-| `approved-subscription-filter.png` | SqlFilter expression reference |
+| `rejected-subscription-filter.png` | SqlFilter expression — `outcome = 'rejected'` (2 active messages) |
 | `topic-metrics-overview.png` | Topic metrics graph |
 
 ## Test Payloads
