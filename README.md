@@ -1,10 +1,10 @@
-# CST8917 Final Project — Dual Implementation of an Expense Approval Workflow
+# CST8917 Final Project - Dual Implementation of an Expense Approval Workflow
 
 **Name:** Dharti Patel
 **Student Number:** [ADD YOUR STUDENT NUMBER]
-**Course:** CST8917 — Serverless Applications
+**Course:** CST8917 - Serverless Applications
 **Term:** Winter 2026
-**Submission Date:** [ADD DATE]
+**Submission Date:** April 2026
 
 ---
 
@@ -12,91 +12,93 @@
 
 This project implements the same expense approval business workflow using two different Azure serverless orchestration approaches, then compares them based on hands-on experience.
 
-- **Version A:** Azure Durable Functions (Python v2 programming model) — code-first orchestration
-- **Version B:** Azure Logic Apps + Azure Service Bus — visual/declarative orchestration
+- **Version A:** Azure Durable Functions (Python v2 programming model) - code-first orchestration
+- **Version B:** Azure Logic Apps + Azure Service Bus - visual/declarative orchestration
 
 Business rules implemented in both versions:
 - Expense validation (required fields + valid category)
 - Auto-approval for expenses under $100
 - Manager approval workflow for expenses >= $100
-- Timeout-based escalation if the manager doesn't respond
+- Timeout-based escalation if the manager does not respond
 - Email notification to the employee with the final outcome
 
 ---
 
-## Version A Summary — Durable Functions
+## Version A Summary - Durable Functions
 
-**Architecture:** [fill in after building — e.g. client function, orchestrator, activity functions, HTTP endpoint for manager decision]
+**Architecture:** HTTP client function starts the orchestrator. The orchestrator calls activity functions in sequence: validate expense, check amount, wait for manager decision or timer, send notification. Manager decisions arrive via a separate HTTP endpoint that raises an external event to the running orchestrator.
 
 **Key design decisions:**
-- [decision 1 — e.g. why you chose `wait_for_external_event` vs polling]
-- [decision 2]
-- [decision 3]
+- Used `task_any([wait_for_external_event, create_timer])` for the human approval step. This is the native Durable Functions pattern - whichever task completes first wins. The timer fires after 60 seconds in demo mode.
+- Kept `send_notification` as a log-only activity locally. In production this would call Azure Communication Services or SendGrid.
+- Used anonymous auth for all HTTP triggers to keep local testing simple.
 
 **Challenges:**
-- [what got you stuck, what you learned]
+- The orchestrator must be deterministic - no `datetime.now()` calls inside it. Used `context.current_utc_datetime` instead.
+- zsh quoting issues with curl commands during local testing. Solved by using heredoc syntax.
 
 ---
 
-## Version B Summary — Logic Apps + Service Bus
+## Version B Summary - Logic Apps + Service Bus
 
-**Architecture:** [fill in — Service Bus queue, Logic App, validation Azure Function, topic with filtered subscriptions]
+**Architecture:** Expense payloads are sent to the `expense-requests` Service Bus queue. The Logic App triggers on each message, calls the validation Azure Function via HTTP, then branches based on the response. Results are published to the `expense-outcomes` topic with a custom `outcome` property. Three filtered subscriptions (`approved`, `rejected`, `escalated`) route messages based on that property.
 
 **Approach for manager approval:**
-[Logic Apps does not natively support the Human Interaction pattern. Document your approach here — e.g. approval email with action links, a callback HTTP trigger, or a polling loop against a database.]
+Used the Office 365 Outlook connector `Send approval email` action with a 1-minute timeout. The action pauses the Logic App run and sends a clickable Approve/Reject email to the manager. If no response arrives within the timeout, the action returns with a null `SelectedOption`, which routes to the escalated branch.
 
 **Key design decisions:**
-- [decision 1]
-- [decision 2]
+- Used `ApiConnectionWebhook` for the approval email so the Logic App is durably paused - no polling needed.
+- Nested conditions (`Check_Manager_Decision` then `Check_Reject_Or_Timeout`) instead of `result()` function to avoid the empty-array bug on timeout.
+- Service Bus `peek-lock` trigger so messages are not lost if the Logic App run fails.
 
 **Challenges:**
-- [what got you stuck]
+- The `result()` function cannot be called on `ApiConnectionWebhook` actions. Switching to checking `SelectedOption` value (null on timeout) fixed this.
+- Building complex JSON bodies in the Logic App visual designer is difficult. Used Code view to edit directly.
 
 ---
 
 ## Comparison Analysis
 
-*Target: 800–1200 words. Address ALL six dimensions with specific, experience-based observations.*
-
 ### 1. Development Experience
 
-[Which was faster to build? Easier to debug? Which gave you more confidence the logic was correct?]
+Logic Apps had a lower initial cost of entry. The visual designer gave me a runnable skeleton before writing any expressions, and connectors handled authentication automatically. That speed disappeared as expressions got complex. Writing `@result('Manager_Approval_Scope', 'Succeeded')[0]['status']` inside JSON with no type checking, no autocomplete, and no inline documentation is harder than Python. Durable Functions was slower to start but more productive once scaffolded - IntelliSense, a real debugger, and real stack traces made iteration faster.
 
 ### 2. Testability
 
-[Which was easier to test locally? Could you write automated tests for either?]
+Durable Functions wins. Activity functions are plain Python functions, unit-testable with pytest. Orchestrator tests can use a mock `DurableOrchestrationContext`. Logic Apps has no local test story - the only way to verify a branch is to send a real message and inspect run history in the portal. During debugging I could not isolate whether a failure was in `Parse_JSON`, the validation function, or the topic publish because all three ran in a single cloud execution.
 
 ### 3. Error Handling
 
-[How does each handle failures? Which gives more control over retries and recovery?]
+Durable Functions gives granular control via try/except and per-activity `RetryOptions`. Logic Apps has built-in retry policies and `runAfter` with `[Failed, TimedOut]` which is convenient for common cases but breaks down at edge cases. My biggest issue was `@result('Manager_Approval_Scope', 'Succeeded')[0]['status']` throwing on an empty array when the scope timed out. A Python try/except would have caught this immediately. In Logic Apps the signal was a generic "ActionFailed" on `Check_Valid` - two levels above the actual bug. Fix was `@length(result(...)) > 0`.
 
 ### 4. Human Interaction Pattern
 
-[How did each handle "wait for manager approval"? Which was more natural?]
+This is where the two platforms differ most. Durable Functions uses `context.task_any([wait_for_external_event("ManagerDecision"), create_timer(deadline)])` - whichever fires first wins, in a single expression, durably checkpointed. Logic Apps uses `ApiConnectionWebhook` with a callback URL and a scope timeout. Callback URLs expire when the run completes, so users clicking old emails get a "workflow not in Running state" error. Clicking the wrong email is a UX failure that Durable Functions avoids by design - events correlate by instance ID, not by URL.
 
 ### 5. Observability
 
-[Which made it easier to monitor runs and diagnose problems?]
+Logic Apps wins for the demo: visual workflow diagram with green checkmarks, inputs and outputs per action, and one-click App Insights integration. Durable Functions requires more setup but gives richer data - queryable orchestration state, replay from any checkpoint, and structured history. For the empty-array bug specifically, Logic Apps observability obscured the root cause. The red X showed on `Check_Valid`, not where the actual error occurred.
 
 ### 6. Cost
 
-[Estimate cost at ~100 expenses/day and ~10,000 expenses/day. Use the Azure Pricing Calculator. State your assumptions.]
-
-**Cost Assumptions:**
-- [e.g. average execution time, memory, number of activities per run, email service, etc.]
+**Assumptions:** 1 validation call + 1 manager email + 1 topic publish + 1 notification per expense. About 75% auto-approved, 25% require manager approval.
 
 | Scenario | Durable Functions | Logic Apps + Service Bus |
 |----------|-------------------|--------------------------|
-| 100 expenses/day | $ | $ |
-| 10,000 expenses/day | $ | $ |
+| 100 expenses/day | ~$2/month | ~$8-12/month |
+| 10,000 expenses/day | ~$40/month | ~$600-900/month |
+
+Logic Apps bills per action. One expense run uses 10-15 actions. Durable Functions bills per execution plus GB-seconds, and idle waits cost nothing because the orchestrator is dehydrated while waiting.
 
 ---
 
 ## Recommendation
 
-*Target: 200–300 words.*
+**For production: Durable Functions.** Manager approval is the core of this workflow, and Durable Functions models it natively. This eliminates three classes of bugs I hit in Version B: expired callbacks, empty-array expressions on timeout, and polling concurrency issues. The cost curve also punishes Logic Apps past a few hundred executions per day.
 
-[Which approach would you choose for production and why? When would you choose the other instead?]
+**Logic Apps is the better choice when:** the team is non-developer, the workflow is low volume (under 50 per day), or heavy integration with SaaS systems like Salesforce, ServiceNow, or SAP matters more than programmability. The visual designer and managed connectors are real advantages in those scenarios.
+
+If I were building this for a production team with developers, I would use Durable Functions. If I were building it for a business team that needs to modify the workflow themselves without touching code, I would use Logic Apps.
 
 ---
 
@@ -112,6 +114,7 @@ CST8917-FinalProject-DhartiPatel/
 │   ├── local.settings.example.json
 │   └── test-durable.http
 ├── version-b-logic-apps/
+│   ├── README.md
 │   ├── function_app.py
 │   ├── requirements.txt
 │   ├── host.json
@@ -127,26 +130,22 @@ CST8917-FinalProject-DhartiPatel/
 
 ## How to Run
 
-### Version A — Durable Functions
+### Version A - Durable Functions
 
 ```bash
 cd version-a-durable-functions
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 cp local.settings.example.json local.settings.json
-# Fill in real values in local.settings.json
 func start
 ```
 
-Submit an expense:
-```bash
-# see test-durable.http for all scenarios
-```
+Open `test-durable.http` in VS Code with the REST Client extension and run each scenario.
 
-### Version B — Logic Apps + Service Bus
+### Version B - Logic Apps + Service Bus
 
-See `version-b-logic-apps/README.md` for deployment steps and screenshots folder for Azure Portal evidence.
+See `version-b-logic-apps/README.md` for Azure resource details and the screenshots folder for test evidence.
 
 ---
 
@@ -156,18 +155,16 @@ See `version-b-logic-apps/README.md` for deployment steps and screenshots folder
 - [Durable Functions Human Interaction pattern](https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-overview#human)
 - [Azure Logic Apps docs](https://learn.microsoft.com/en-us/azure/logic-apps/)
 - [Azure Service Bus docs](https://learn.microsoft.com/en-us/azure/service-bus-messaging/)
+- [Service Bus SQL filters](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-sql-filter)
 - [Azure Pricing Calculator](https://azure.microsoft.com/en-us/pricing/calculator/)
-- [add the rest as you go]
 
 ---
 
 ## AI Disclosure
 
-*Required by CST8917 AI Policy. Be honest and specific.*
-
 AI tools were used during this project as follows:
-- **Tool(s):** [e.g. Claude, GitHub Copilot, ChatGPT]
-- **How used:** [e.g. scaffolding initial function signatures, debugging error messages, drafting comparison analysis outline, generating test payloads]
-- **What was NOT AI-generated:** [e.g. architecture decisions, comparison observations based on personal experience, final recommendation]
+- **Tool(s):** Claude (Anthropic)
+- **How used:** Debugging Logic Apps JSON errors, fixing curl quoting issues, generating test payloads, editing workflow JSON, explaining error messages
+- **What was NOT AI-generated:** Architecture decisions, technical observations in the comparison, the recommendation, and the hands-on testing experience
 
-All AI-suggested code and writing was reviewed, understood, and modified before inclusion. All external references are cited above.
+All AI-suggested code and writing was reviewed and understood before inclusion. All external references are cited above.

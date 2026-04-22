@@ -1,9 +1,13 @@
 ### Version A — Durable Functions test scenarios
-### Use the REST Client extension in VS Code, or import into Postman.
-### Run one request at a time. After submitting an expense >= $100, grab the
-### instance_id from the response statusQueryGetUri, then POST to manager-decision.
+### Requires: REST Client extension in VS Code (by Huachao Mao)
+### How to use: click "Send Request" above each block.
+### For scenarios 2 & 3: after submitting, copy the "id" from the response,
+### paste it as @instanceId below, then send the manager-decision request.
 
 @host = http://localhost:7071
+
+# After running scenario 2 or 3, paste the instance id here:
+@instanceId = PASTE_INSTANCE_ID_HERE
 
 ###############################################################################
 # Scenario 1: Valid expense under $100 → auto-approved
@@ -37,7 +41,7 @@ Content-Type: application/json
 }
 
 ### Step 2: replace {instance_id} with the value returned above
-POST {{host}}/api/manager-decision/{instance_id}
+POST {{host}}/api/manager-decision/{{instanceId}}
 Content-Type: application/json
 
 {
@@ -60,7 +64,7 @@ Content-Type: application/json
 }
 
 ### Step 2: replace {instance_id}
-POST {{host}}/api/manager-decision/{instance_id}
+POST {{host}}/api/manager-decision/{{instanceId}}
 Content-Type: application/json
 
 {
