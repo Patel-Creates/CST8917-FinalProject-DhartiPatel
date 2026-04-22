@@ -38,8 +38,13 @@
 | `s4-06-topic-send-success.png` | Scenario 4: direct topic publish worked |
 | `s5-01-email-missing-fields.png` | Scenario 5: validation rejection - missing fields |
 | `s6-01-email-invalid-category.png` | Scenario 6: validation rejection - invalid category |
-| `rejected-subscription-filter.png` | SqlFilter expression — `outcome = 'rejected'` (2 active messages) |
+| `rejected-subscription-filter.png` | SqlFilter expression - `outcome = 'rejected'` (2 active messages) |
 | `topic-metrics-overview.png` | Topic metrics graph |
+| `logic-app-designer.png` | Full Logic App workflow diagram |
+| `run-history-detail-success.png` | Run detail showing all green checkmarks |
+| `s1-email-auto-approved.png` | Scenario 1: auto-approve email received ($45.50 meals) |
+| `s2-email-approval-received.png` | Scenario 2: approve action confirmed in email thread |
+| `s3-02-approval-email-darkmode.png` | Scenario 3: approval email with Approve/Reject buttons ($500 travel) |
 
 ## Test Payloads
 
