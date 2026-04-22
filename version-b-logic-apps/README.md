@@ -26,25 +26,20 @@
 | File | Evidence |
 |------|----------|
 | `FINAL-all-3-subscriptions.png` | **Main evidence** - all 3 subscriptions populated |
-| `s2-01-sbexplorer-send.png` | Scenario 2: message sent to queue |
-| `s2-email-approval-received.png` | Scenario 2: approval email received |
-| `s2-04-approve-success.png` | Scenario 2: approve callback succeeded |
-| `s2-06-topic-approved-count.png` | Scenario 2: approved subscription +1 |
+| `FINAL-all-3-subscriptions.png` | **Main evidence** - all 3 subscriptions populated |
+| `logic-app-designer.png` | Full Logic App workflow diagram |
+| `run-history-detail-success.png` | Run detail showing all green checkmarks |
+| `run-history-succeeded.png` | Run history filtered to succeeded runs |
+| `s1-email-auto-approved.png` | Scenario 1: auto-approve email received ($45.50 meals) |
+| `s2-04-approve-success.png` | Scenario 2: approve response registered |
+| `s2-email-approval-received.png` | Scenario 2: approve action confirmed in email thread |
 | `s3-01-email-reject-received.png` | Scenario 3: approval email for $500 travel |
-| `s3-03-reject-success-clean.png` | Scenario 3: reject callback succeeded |
-| `s4-01-email-approval-received.png` | Scenario 4: approval email for $150 software |
-| `s4-03-runhistory-failed.png` | Scenario 4: 2-minute timeout in run history |
-| `s4-04-checkvalid-actionfailed.png` | Scenario 4: empty-array bug surfaces |
-| `s4-06-topic-send-success.png` | Scenario 4: direct topic publish worked |
+| `s3-02-approval-email-darkmode.png` | Scenario 3: approval email with Approve/Reject buttons |
+| `s3-03-reject-success-clean.png` | Scenario 3: reject response registered |
 | `s5-01-email-missing-fields.png` | Scenario 5: validation rejection - missing fields |
 | `s6-01-email-invalid-category.png` | Scenario 6: validation rejection - invalid category |
 | `rejected-subscription-filter.png` | SqlFilter expression - `outcome = 'rejected'` (2 active messages) |
 | `topic-metrics-overview.png` | Topic metrics graph |
-| `logic-app-designer.png` | Full Logic App workflow diagram |
-| `run-history-detail-success.png` | Run detail showing all green checkmarks |
-| `s1-email-auto-approved.png` | Scenario 1: auto-approve email received ($45.50 meals) |
-| `s2-email-approval-received.png` | Scenario 2: approve action confirmed in email thread |
-| `s3-02-approval-email-darkmode.png` | Scenario 3: approval email with Approve/Reject buttons ($500 travel) |
 
 ## Test Payloads
 
